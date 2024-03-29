@@ -7,7 +7,8 @@ import './MainGame.css';
 
 function MainGame() {
     const mountRef = useRef(null);
-    // Camera moving controls setup
+
+    // Camera controls setup
     let isMouseDown = false;
     let onMouseDownPosition = { x: 0, y: 0 };
     let currentAngle = 0;
@@ -18,6 +19,7 @@ function MainGame() {
     const zoomSpeed = 0.5;
 
     // Movement setup
+    const moveSpeed = 0.08;
     const movement = {
         up: false,
         down: false,
@@ -107,7 +109,6 @@ function MainGame() {
         document.addEventListener('wheel', (event) => {
             // Zoom in or out
             cameraDistance += event.deltaY * 0.01 * zoomSpeed;
-            // Clamp the camera distance
             cameraDistance = Math.max(minDistance, Math.min(maxDistance, cameraDistance));
         });        
 
@@ -125,7 +126,7 @@ function MainGame() {
         controls.target.set(0, 0, 0);
 
         renderer.setSize(width, height);
-        mountRef.current.appendChild(renderer.domElement); // Attach the renderer to the div element
+        mountRef.current.appendChild(renderer.domElement); 
         
         // Example object
         const geometry = new THREE.BoxGeometry(1, 1, 1);
@@ -142,9 +143,9 @@ function MainGame() {
         scene.add(directionalLight);
 
         const updateCameraPosition = function() {
-            if (playerModel) { // Make sure the player model is loaded
+            if (playerModel) { 
                 const playerPosition = new THREE.Vector3();
-                playerModel.getWorldPosition(playerPosition); // Get the player model's world position
+                playerModel.getWorldPosition(playerPosition); 
                 
                 // Calculate new camera position based on angles and distance
                 const offsetX = cameraDistance * Math.sin(currentAngle) * Math.cos(currentVerticalAngle);
@@ -152,33 +153,36 @@ function MainGame() {
                 const offsetZ = cameraDistance * Math.cos(currentAngle) * Math.cos(currentVerticalAngle);
                 
                 camera.position.set(playerPosition.x + offsetX, playerPosition.y + offsetY, playerPosition.z + offsetZ);
-                camera.lookAt(playerPosition); // Make the camera look at the player model
+                camera.lookAt(playerPosition);
             }
         };
 
         function updateMovement() {
+            let direction = new THREE.Vector3(0, 0, 0);
             const forward = new THREE.Vector3();
             camera.getWorldDirection(forward);
             forward.normalize();
-            forward.y = 0; // Ignoring vertical movement for simplicity
+            forward.y = 0; // Ignoring vertical movement for now
         
             const right = new THREE.Vector3();
             right.crossVectors(camera.up, forward);
             right.normalize();
         
-            const moveSpeed = 0.05;
+            if (movement.up) direction.add(forward);
+            if (movement.down) direction.sub(forward);
+            if (movement.left) direction.add(right);
+            if (movement.right) direction.sub(right);
         
-            if (movement.up) {
-                playerModel.position.addScaledVector(forward, moveSpeed);
+            // Normalize to prevent faster diagonal movement
+            if (direction.lengthSq() > 0) direction.normalize();
+
+            if (playerModel) { 
+                playerModel.position.addScaledVector(direction, moveSpeed);
             }
-            if (movement.down) {
-                playerModel.position.addScaledVector(forward, -moveSpeed);
-            }
-            if (movement.left) {
-                playerModel.position.addScaledVector(right, -moveSpeed);
-            }
-            if (movement.right) {
-                playerModel.position.addScaledVector(right, moveSpeed);
+            // Rotate player model to face direction of movement
+            if (direction.lengthSq() > 0) {
+                const angle = Math.atan2(direction.x, direction.z);
+                playerModel.rotation.y = angle;
             }
         }
 
@@ -186,7 +190,6 @@ function MainGame() {
         const animate = function () {
             requestAnimationFrame(animate);
             // playerModel.getWorldPosition(playerPosition);
-            // For a real application, get this from your player model's position
             updateMovement();
             updateCameraPosition();
         
