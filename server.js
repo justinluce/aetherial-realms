@@ -1,3 +1,4 @@
+//! This was originally for adding unity into the game, however I don't need this anymore
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
