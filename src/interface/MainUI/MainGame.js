@@ -243,7 +243,11 @@ function MainGame() {
         };
     }, []);
 
-    return <div ref={mountRef} className="main-game"></div>;
+    return (
+        <div ref={mountRef} className="main-game">
+            <div className='version-number'>v0.1.0</div>
+        </div>
+    )
 }
 
 export default MainGame;

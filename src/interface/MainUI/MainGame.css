@@ -1,0 +1,10 @@
+.main-game {
+    position: relative;
+}
+
+.version-number {
+    position: absolute;
+    color: black;
+    font-size: 14px;
+    z-index: 10;
+}
