@@ -184,7 +184,7 @@ function MainGame() {
             if (movement.up || movement.down || movement.left || movement.right) {
                 isMoving = true;
             }
-        
+            //TODO: Fix the T-Posing
             if (isMoving) {
                 if (!actions['run'].isRunning()) {
                     actions['run'].play();
