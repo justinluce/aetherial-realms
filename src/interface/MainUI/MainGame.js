@@ -28,6 +28,8 @@ function MainGame() {
     };
 
     let playerModel;
+    let mixer, actions = {};
+    const clock = new THREE.Clock();
 
     useEffect(() => {
         const loader = new GLTFLoader();
@@ -35,6 +37,16 @@ function MainGame() {
         loader.load(maleModel, function (gltf) {
             playerModel = gltf.scene;
             scene.add(gltf.scene);
+            mixer = new THREE.AnimationMixer(playerModel);
+            gltf.animations.forEach((clip) => {
+                console.log(clip);
+                const action = mixer.clipAction(clip);
+                actions[clip.name] = action;
+            });
+            if (actions['run']) {
+                actions['run'].play();
+            }
+            console.log(gltf.animations.map(clip => clip.name));
             updateCameraPosition();
         }, undefined, function (error) {
             console.error(error);
@@ -158,6 +170,7 @@ function MainGame() {
         };
 
         function updateMovement() {
+            let isMoving = false;
             let direction = new THREE.Vector3(0, 0, 0);
             const forward = new THREE.Vector3();
             camera.getWorldDirection(forward);
@@ -167,6 +180,20 @@ function MainGame() {
             const right = new THREE.Vector3();
             right.crossVectors(camera.up, forward);
             right.normalize();
+
+            if (movement.up || movement.down || movement.left || movement.right) {
+                isMoving = true;
+            }
+        
+            if (isMoving) {
+                if (!actions['run'].isRunning()) {
+                    actions['run'].play();
+                }
+            } else if (actions['run']) {
+                actions['run'].stop();
+            } else {
+                // console.log("no action called run", actions);
+            }
         
             if (movement.up) direction.add(forward);
             if (movement.down) direction.sub(forward);
@@ -190,6 +217,8 @@ function MainGame() {
         const animate = function () {
             requestAnimationFrame(animate);
             // playerModel.getWorldPosition(playerPosition);
+            const delta = clock.getDelta();
+            if (mixer) mixer.update(delta);
             updateMovement();
             updateCameraPosition();
         
