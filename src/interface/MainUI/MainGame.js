@@ -1,5 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import * as THREE from 'three';
+import * as CANNON from 'cannon';
+import { createNoise2D } from 'simplex-noise';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import maleModel from "../../models/CasualMale.glb";
@@ -30,6 +32,10 @@ function MainGame() {
     let playerModel;
     let mixer, actions = {};
     const clock = new THREE.Clock();
+
+    const noise2D = createNoise2D();
+    const size = 256;
+    let heightData = new Float32Array(size * size);
 
     useEffect(() => {
         const loader = new GLTFLoader();
@@ -139,11 +145,36 @@ function MainGame() {
 
         renderer.setSize(width, height);
         mountRef.current.appendChild(renderer.domElement); 
+
+        // Terrain generation
+        for (let i = 0; i < size; i++) {
+            for (let j = 0; j < size; j++) {
+                const heightValue = noise2D(i / 50, j / 50);
+                heightData[i + j * size] = heightValue;
+            }
+        }
+
+        const geometry = new THREE.PlaneGeometry(500, 500, size - 1, size - 1);
+
+        const vertices = geometry.attributes.position.array;
+
+        for (let i = 0, j = 0; i < vertices.length; i++, j += 3) {
+            // Modify the z position (height) of the vertex from heightData
+            vertices[j + 2] = heightData[i] * 20;
+        }
+        
+        geometry.attributes.position.needsUpdate = true;
+        geometry.computeVertexNormals(); // Important for lighting to work properly
+
+        const material = new THREE.MeshStandardMaterial({ color: 0x5566aa, wireframe: false });
+        const terrain = new THREE.Mesh(geometry, material);
+        terrain.rotation.x = -Math.PI / 2;
+        scene.add(terrain);
         
         // Example object
-        const geometry = new THREE.BoxGeometry(1, 1, 1);
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        const cube = new THREE.Mesh(geometry, material);
+        const geometryCube = new THREE.BoxGeometry(1, 1, 1);
+        const materialCube = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        const cube = new THREE.Mesh(geometryCube, materialCube);
         scene.background = new THREE.Color("white");
         scene.add(cube);
 
