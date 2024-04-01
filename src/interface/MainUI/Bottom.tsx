@@ -1,4 +1,3 @@
-
 import './BottomStyles.css'
 
 function BottomPanel() {

@@ -3,6 +3,7 @@ import Map from '../Map/Map';
 import BottomPanel from './Bottom';
 import MainGame from './MainGame';
 import { useRef, useEffect } from 'react';
+import React from 'react';
 
 const MainUI = () => {
 

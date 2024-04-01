@@ -2,20 +2,20 @@ import React, { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import * as CANNON from 'cannon';
 import { createNoise2D } from 'simplex-noise';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import maleModel from "../../models/CasualMale.glb";
 import './MainGame.css';
 
 function MainGame() {
-    const mountRef = useRef(null);
+    const mountRef = useRef<HTMLDivElement | null>(null);
 
     // Camera controls setup
-    let isMouseDown = false;
-    let onMouseDownPosition = { x: 0, y: 0 };
-    let currentAngle = 0;
-    let currentVerticalAngle = 0;
-    let cameraDistance = 10; 
+    let isMouseDown: boolean = false;
+    let onMouseDownPosition: { x: number; y: number } = { x: 0, y: 0 };
+    let currentAngle: number = 0;
+    let currentVerticalAngle: number = 0;
+    let cameraDistance: number = 10; 
     const minDistance = 0;
     const maxDistance = 20; 
     const zoomSpeed = 0.5;
@@ -28,10 +28,12 @@ function MainGame() {
         left: false,
         right: false
     };
-
-    let playerModel;
-    let mixer, actions = {};
+    
+    let playerModel: THREE.Object3D;
+    let mixer: THREE.AnimationMixer | null = null 
+    let actions: { [key: string]: THREE.AnimationAction } = {};
     const clock = new THREE.Clock();
+    const scene = new THREE.Scene();
 
     const noise2D = createNoise2D();
     const size = 256;
@@ -40,22 +42,31 @@ function MainGame() {
     useEffect(() => {
         const loader = new GLTFLoader();
 
-        loader.load(maleModel, function (gltf) {
+        loader.load(maleModel, function (gltf: GLTF) {
+            gltf.scene.name = 'playerModel';
             playerModel = gltf.scene;
-            scene.add(gltf.scene);
-            mixer = new THREE.AnimationMixer(playerModel);
-            gltf.animations.forEach((clip) => {
-                console.log(clip);
-                const action = mixer.clipAction(clip);
-                actions[clip.name] = action;
-            });
-            if (actions['run']) {
-                actions['run'].play();
+            const playerInGame = scene.getObjectByName('playerModel');
+            if (!playerInGame) {
+                console.log(playerModel);
+                scene.add(gltf.scene);
+                mixer = new THREE.AnimationMixer(playerModel);
+                gltf.animations.forEach((clip: THREE.AnimationClip) => {
+                    if (mixer) {
+                        const action = mixer.clipAction(clip);
+                        actions[clip.name] = action;
+                    }
+                });
+                if (actions['run']) {
+                    actions['run'].play();
+                }
             }
-            console.log(gltf.animations.map(clip => clip.name));
             updateCameraPosition();
-        }, undefined, function (error) {
-            console.error(error);
+        }, undefined, function (error: unknown) {
+            if (error instanceof Error) {
+                console.error(error.message);
+            } else {
+                console.error("Unknown error: ", error);
+            }
         });
 
         document.addEventListener('keydown', function(event) {
@@ -131,9 +142,10 @@ function MainGame() {
         });        
 
         // Scene, camera, and renderer setup
-        const scene = new THREE.Scene();
+        if (!mountRef.current) throw new Error("mountRef.current is null");
         const width = mountRef.current.clientWidth;
         const height = mountRef.current.clientHeight;
+
         const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer();
 
@@ -145,6 +157,25 @@ function MainGame() {
 
         renderer.setSize(width, height);
         mountRef.current.appendChild(renderer.domElement); 
+
+        const world = new CANNON.World();
+        world.gravity.set(0, -9.82, 0);
+        world.broadphase = new CANNON.NaiveBroadphase();
+        // Increasing this will have better accuracy but cost more resources. Probably don't increase this
+        world.solver.iterations = 10;
+
+        // Testing collisions
+        const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
+        const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+        const sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        sphereMesh.position.set(0, 10, 0);
+        scene.add(sphereMesh);
+        const sphereBody = new CANNON.Body({
+            mass: 5,
+            shape: new CANNON.Sphere(1),
+            position: new CANNON.Vec3(0, 10, 0),
+        });
+        world.addBody(sphereBody);
 
         // Terrain generation
         for (let i = 0; i < size; i++) {
@@ -159,18 +190,88 @@ function MainGame() {
         const vertices = geometry.attributes.position.array;
 
         for (let i = 0, j = 0; i < vertices.length; i++, j += 3) {
-            // Modify the z position (height) of the vertex from heightData
+            // Modify the height of the vertex from heightData
             vertices[j + 2] = heightData[i] * 20;
         }
         
         geometry.attributes.position.needsUpdate = true;
-        geometry.computeVertexNormals(); // Important for lighting to work properly
+        geometry.computeVertexNormals(); // Need for lighting to work properly
 
         const material = new THREE.MeshStandardMaterial({ color: 0x5566aa, wireframe: false });
         const terrain = new THREE.Mesh(geometry, material);
+
+        // Rotate the terrain I guess? Without this the terrain is vertical for some reason? Might have screwed up something else somewhere
         terrain.rotation.x = -Math.PI / 2;
         scene.add(terrain);
-        
+
+        //! THIS IS ALL COMMENTED BECAUSE OF INFINITE LOADING
+        //! DO I EVEN NEED THIS? WHO KNOWS
+
+        /*
+
+        // Converting heightData to a 1D array because Cannon.js needs it or something 
+        let heightData2D: number[][] = [];
+        for (let i = 0; i < size; i++) {
+            let row: number[] = [];
+            for (let j = 0; j < size; j++) {
+                const heightValue = noise2D(i / 50, j / 50);
+                row.push(heightValue);
+            }
+            heightData2D.push(row);
+        }
+
+        // Flatten the 2D array into a 1D array
+        let heightData1D: number[] = heightData2D.flat();
+
+        // Use the 1D array with CANNON.Heightfield
+        const hfShape = new CANNON.Heightfield(heightData1D, {
+            elementSize: 100 / size
+        });
+
+        // HAHAHAHAHAHAHAHAHAHAHA
+        const hfWidth = 500;
+        const hfDepth = 500;
+        const widthSegments = size - 1; 
+        const depthSegments = size - 1; 
+
+        const bufferGeometry = new THREE.BufferGeometry();
+
+        const numVertices = (widthSegments + 1) * (depthSegments + 1);
+
+        const positions = new Float32Array(numVertices * 3); // 3 values per vertex
+
+        let index = 0;
+        for (let i = 0; i <= depthSegments; i++) {
+            for (let j = 0; j <= widthSegments; j++) {
+                const x = (j / widthSegments) * hfWidth - hfWidth / 2;
+                const y = heightData2D[i][j] * 20; // Scale the height value
+                const z = (i / depthSegments) * hfDepth - hfDepth / 2;
+
+                positions[index * 3 + 0] = x;
+                positions[index * 3 + 1] = y;
+                positions[index * 3 + 2] = z;
+
+                index++;
+            }
+        }
+
+        bufferGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+        bufferGeometry.computeVertexNormals();
+
+        const bufferMaterial = new THREE.MeshStandardMaterial({
+            wireframe: false,
+            color: 0x5566aa,
+            side: THREE.DoubleSide
+        });
+
+        const hfMesh = new THREE.Mesh(bufferGeometry, bufferMaterial);
+        scene.add(hfMesh);
+
+        const hfBody = new CANNON.Body({ mass: 0 }); // mass 0 because terrain is static
+        hfBody.addShape(hfShape);
+        world.addBody(hfBody);
+        */
         // Example object
         const geometryCube = new THREE.BoxGeometry(1, 1, 1);
         const materialCube = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
@@ -186,9 +287,11 @@ function MainGame() {
         scene.add(directionalLight);
 
         const updateCameraPosition = function() {
-            if (playerModel) { 
+            if (scene.getObjectByName('playerModel')) { 
+                const testPlayer = scene.getObjectByName('playerModel');
                 const playerPosition = new THREE.Vector3();
-                playerModel.getWorldPosition(playerPosition); 
+                if (!testPlayer) throw new Error("test player not defined fuck you")
+                testPlayer.getWorldPosition(playerPosition); 
                 
                 // Calculate new camera position based on angles and distance
                 const offsetX = cameraDistance * Math.sin(currentAngle) * Math.cos(currentVerticalAngle);
@@ -234,20 +337,26 @@ function MainGame() {
             // Normalize to prevent faster diagonal movement
             if (direction.lengthSq() > 0) direction.normalize();
 
-            if (playerModel) { 
-                playerModel.position.addScaledVector(direction, moveSpeed);
+            const playerTest = scene.getObjectByName('playerModel');
+            if (scene.getObjectByName('playerModel')) { 
+                if (!playerTest) throw new Error("fuck you")
+                playerTest.position.addScaledVector(direction, moveSpeed);
             }
             // Rotate player model to face direction of movement
             if (direction.lengthSq() > 0) {
                 const angle = Math.atan2(direction.x, direction.z);
-                playerModel.rotation.y = angle;
+                if (!playerTest) throw new Error("fuck you2")
+                playerTest.rotation.y = angle;
             }
         }
 
         // Animation loop
         const animate = function () {
             requestAnimationFrame(animate);
-            // playerModel.getWorldPosition(playerPosition);
+            const timeStep = 1 / 60; // seconds
+            world.step(timeStep);
+            sphereMesh.position.copy(sphereBody.position);
+            sphereMesh.quaternion.copy(sphereBody.quaternion);
             const delta = clock.getDelta();
             if (mixer) mixer.update(delta);
             updateMovement();
@@ -259,6 +368,7 @@ function MainGame() {
         animate();
 
         const handleResize = () => {
+            if (!mountRef.current) throw new Error("mountRef.current is null");
             const width = mountRef.current.clientWidth;
             const height = mountRef.current.clientHeight;
             renderer.setSize(width, height);
@@ -270,6 +380,7 @@ function MainGame() {
 
         return () => {
             window.removeEventListener('resize', handleResize);
+            if (!mountRef.current) throw new Error("mountRef.current is null");
             mountRef.current.removeChild(renderer.domElement);
         };
     }, []);
