@@ -4,8 +4,25 @@ import * as CANNON from 'cannon';
 import { createNoise2D } from 'simplex-noise';
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { Canvas } from '@react-three/fiber';
+import { Physics, RigidBody } from '@react-three/rapier';
+import { useGLTF } from '@react-three/drei';
 import maleModel from "../../models/CasualMale.glb";
 import './MainGame.css';
+
+interface PlayerProps {
+    modelPath: string;
+}
+
+function Player({ modelPath }: PlayerProps) {
+    const { scene } = useGLTF(modelPath);
+
+    return (
+        <RigidBody type="dynamic">
+            <primitive object={scene} scale={.5}/>
+        </RigidBody>
+    )
+}
 
 function MainGame() {
     const mountRef = useRef<HTMLDivElement | null>(null);
@@ -30,6 +47,13 @@ function MainGame() {
     };
     
     let playerModel: THREE.Object3D;
+    const playerShape = new CANNON.Sphere(0.5);
+    const playerBody = new CANNON.Body({
+        mass: 1,
+        position: new CANNON.Vec3(0, 2, 0),
+        shape: playerShape,
+    });
+
     let mixer: THREE.AnimationMixer | null = null 
     let actions: { [key: string]: THREE.AnimationAction } = {};
     const clock = new THREE.Clock();
@@ -37,7 +61,7 @@ function MainGame() {
 
     const noise2D = createNoise2D();
     const size = 256;
-    let heightData = new Float32Array(size * size);
+    let heightData: number[] = new Array(size * size);
 
     useEffect(() => {
         const loader = new GLTFLoader();
@@ -146,6 +170,8 @@ function MainGame() {
         const width = mountRef.current.clientWidth;
         const height = mountRef.current.clientHeight;
 
+        const geometry = new THREE.PlaneGeometry(500, 500, size - 1, size - 1);
+
         const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer();
 
@@ -163,6 +189,20 @@ function MainGame() {
         world.broadphase = new CANNON.NaiveBroadphase();
         // Increasing this will have better accuracy but cost more resources. Probably don't increase this
         world.solver.iterations = 10;
+        world.addBody(playerBody);
+
+        // Making the ground
+        const groundMaterial = new CANNON.Material("groundMaterial");
+
+        const groundBody = new CANNON.Body({
+            mass: 0, //static
+            material: groundMaterial
+        });
+        const groundShape = new CANNON.Plane();
+        groundBody.addShape(groundShape);
+        // Rotate it
+        groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+        world.addBody(groundBody);
 
         // Testing collisions
         const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
@@ -185,8 +225,6 @@ function MainGame() {
             }
         }
 
-        const geometry = new THREE.PlaneGeometry(500, 500, size - 1, size - 1);
-
         const vertices = geometry.attributes.position.array;
 
         for (let i = 0, j = 0; i < vertices.length; i++, j += 3) {
@@ -204,8 +242,41 @@ function MainGame() {
         terrain.rotation.x = -Math.PI / 2;
         scene.add(terrain);
 
+
+        let hasValues = false;
+        for (let i = 0; i < size * size; i++) {
+            if (heightData[i] !== 0.0) {
+                hasValues = true;
+                break;
+            }
+        }
+
+        // if (hasValues) {
+        //     console.log("has values");
+        //     console.log(heightData);
+        //     try {
+        //         let data = [];
+        //         for (let i = 0; i < 1000; i++) {
+        //             let y = .5 * Math.cos(.2 * i);
+        //             data.push(y);
+        //         }
+        //         const hfShape = new CANNON.Heightfield(data, {
+        //             elementSize: 1
+        //         });
+    
+        //         // const hfBody = new CANNON.Body({
+        //         //     mass: 0, //static
+        //         // });
+        //         // hfBody.addShape(hfShape);
+        //         // world.addBody(hfBody);
+        //     } catch (error) {
+        //         alert(error);
+        //     }
+        // } else {
+        //     console.error("no values");
+        // }
+
         //! THIS IS ALL COMMENTED BECAUSE OF INFINITE LOADING
-        //! DO I EVEN NEED THIS? WHO KNOWS
 
         /*
 
@@ -304,12 +375,15 @@ function MainGame() {
         };
 
         function updateMovement() {
+            // Reset velocity to 0 on the x and z axes before applying new movement
+            playerBody.velocity.x = 0;
+            playerBody.velocity.z = 0;
             let isMoving = false;
-            let direction = new THREE.Vector3(0, 0, 0);
             const forward = new THREE.Vector3();
             camera.getWorldDirection(forward);
             forward.normalize();
             forward.y = 0; // Ignoring vertical movement for now
+
         
             const right = new THREE.Vector3();
             right.crossVectors(camera.up, forward);
@@ -326,28 +400,44 @@ function MainGame() {
             } else if (actions['run']) {
                 actions['run'].stop();
             } else {
-                // console.log("no action called run", actions);
+                console.error("no action called run", actions);
             }
         
-            if (movement.up) direction.add(forward);
-            if (movement.down) direction.sub(forward);
-            if (movement.left) direction.add(right);
-            if (movement.right) direction.sub(right);
+            if (movement.up) {
+                const moveForward = forward.clone().multiplyScalar(-moveSpeed);
+                playerBody.velocity.x += moveForward.x;
+                playerBody.velocity.z += moveForward.z;
+            }
+            if (movement.down) {
+                const moveBackward = forward.clone().multiplyScalar(moveSpeed);
+                playerBody.velocity.x += moveBackward.x;
+                playerBody.velocity.z += moveBackward.z;
+            }
+            if (movement.left) {
+                const moveLeft = right.clone().multiplyScalar(-moveSpeed);
+                playerBody.velocity.x += moveLeft.x;
+                playerBody.velocity.z += moveLeft.z;
+            }
+            if (movement.right) {
+                const moveRight = right.clone().multiplyScalar(moveSpeed);
+                playerBody.velocity.x += moveRight.x;
+                playerBody.velocity.z += moveRight.z;
+            }
         
             // Normalize to prevent faster diagonal movement
-            if (direction.lengthSq() > 0) direction.normalize();
+            // if (direction.lengthSq() > 0) direction.normalize();
 
-            const playerTest = scene.getObjectByName('playerModel');
-            if (scene.getObjectByName('playerModel')) { 
-                if (!playerTest) throw new Error("fuck you")
-                playerTest.position.addScaledVector(direction, moveSpeed);
-            }
-            // Rotate player model to face direction of movement
-            if (direction.lengthSq() > 0) {
-                const angle = Math.atan2(direction.x, direction.z);
-                if (!playerTest) throw new Error("fuck you2")
-                playerTest.rotation.y = angle;
-            }
+            // const playerTest = scene.getObjectByName('playerModel');
+            // if (scene.getObjectByName('playerModel')) { 
+            //     if (!playerTest) throw new Error("no player object in game")
+            //     playerTest.position.addScaledVector(direction, moveSpeed);
+            // }
+            // // Rotate player model to face direction of movement
+            // if (direction.lengthSq() > 0) {
+            //     const angle = Math.atan2(direction.x, direction.z);
+            //     if (!playerTest) throw new Error("no player object in game 2")
+            //     playerTest.rotation.y = angle;
+            // }
         }
 
         // Animation loop
@@ -355,6 +445,12 @@ function MainGame() {
             requestAnimationFrame(animate);
             const timeStep = 1 / 60; // seconds
             world.step(timeStep);
+
+            if (playerModel && playerBody) {
+                playerModel.position.copy(playerBody.position as any);
+                playerModel.quaternion.copy(playerBody.position as any);
+                // console.log("updating playermodel: ", playerBody.position);
+            }
             sphereMesh.position.copy(sphereBody.position);
             sphereMesh.quaternion.copy(sphereBody.quaternion);
             const delta = clock.getDelta();
@@ -386,8 +482,15 @@ function MainGame() {
     }, []);
 
     return (
-        <div ref={mountRef} className="main-game">
-            <div className='version-number'>v0.1.0</div>
+        <div>
+        {/*<div ref={mountRef} className="main-game">*/}
+            <Canvas>
+                <div className='version-number'>v0.1.0</div>
+                <Physics>
+                        <Player modelPath={maleModel} />
+                </Physics>
+            </Canvas>
+        {/*</div>*/}
         </div>
     )
 }

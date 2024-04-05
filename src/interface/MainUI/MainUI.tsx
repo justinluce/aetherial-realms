@@ -1,13 +1,12 @@
 import './MainUIStyles.css';
 import Map from '../Map/Map';
 import BottomPanel from './Bottom';
-import MainGame from './MainGame';
+import MainGame from './NewMainGame';
 import { useRef, useEffect } from 'react';
 import React from 'react';
 
 const MainUI = () => {
 
-    console.log("rendering mainui");
     return ( 
         <div className='main-container'>
             <div className="left-panel">
