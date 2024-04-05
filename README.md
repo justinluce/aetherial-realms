@@ -1,7 +1,7 @@
-# Prismatic World
+# Beyond Aether
 
 A small open-world game I'm working on.
 
-Hosted at prismaticworld.net
+Hosted at beyondaether.net
 
-Made using React, Three.js, and Cannon.js.
+Made using TypeScript, React.js, Three.js, and Cannon.js.
