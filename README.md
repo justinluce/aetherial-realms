@@ -1,7 +1,7 @@
-# Beyond Aether
+# Aetherial Realms
 
 A small open-world game I'm working on.
 
-Hosted at beyondaether.net
+Will be hosted at aetherialrealms.net
 
-Made using TypeScript, React.js, Three.js, and Cannon.js.
+Made using TypeScript, React, Three, and Rapier.
