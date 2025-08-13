@@ -1,7 +1,0 @@
-[
-  {
-    "directory": "/media/justin/Elements/!Projects/aetherial-realms/build",
-    "command": "/usr/bin/clang++ -DBGFX_CONFIG_DEBUG_ANNOTATION=0 -DBGFX_CONFIG_MULTITHREADED=1 -DBX_CONFIG_DEBUG=0 -isystem /usr/include/SDL2 -isystem /home/justin/vcpkg/installed/x64-linux/include -std=gnu++20 -o CMakeFiles/aetherial_realms.dir/src/main.cpp.o -c /media/justin/Elements/!Projects/aetherial-realms/src/main.cpp",
-    "file": "/media/justin/Elements/!Projects/aetherial-realms/src/main.cpp"
-  }
-]

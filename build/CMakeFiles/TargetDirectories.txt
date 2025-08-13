@@ -1,3 +1,0 @@
-/media/justin/Elements/!Projects/aetherial-realms/build/CMakeFiles/aetherial_realms.dir
-/media/justin/Elements/!Projects/aetherial-realms/build/CMakeFiles/edit_cache.dir
-/media/justin/Elements/!Projects/aetherial-realms/build/CMakeFiles/rebuild_cache.dir
