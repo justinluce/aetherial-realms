@@ -1,0 +1,4 @@
+.cache
+build
+settings.json
+compile_commands.json
