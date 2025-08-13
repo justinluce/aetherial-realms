@@ -1,0 +1,13 @@
+{
+  "clangd.arguments": [
+    "--background-index",
+    "--clang-tidy",
+    "--header-insertion=iwyu",
+    "--completion-style=detailed"
+  ],
+  "cmake.generator": "Ninja",
+  "cmake.configureSettings": {
+    "CMAKE_TOOLCHAIN_FILE": "/home/justin/vcpkg/scripts/buildsystems/vcpkg.cmake",
+    "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+  }
+}
