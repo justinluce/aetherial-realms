@@ -80,4 +80,4 @@ That's it tbh bt idk icl lol
 
 ## Mac
 
-¯\\_(ツ)_/¯
+<p>¯\_(ツ)_/¯</p>
