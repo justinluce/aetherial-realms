@@ -1,0 +1,9 @@
+{
+  "name": "aetherial-realms",
+  "version-string": "0.1.0",
+  "dependencies": [
+    { "name": "bgfx", "features": ["tools"] },
+    "sdl2",
+    "glm"
+  ]
+}
