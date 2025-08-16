@@ -20,17 +20,23 @@ This project was primarily made and tested with Linux in mind. Windows steps are
 
 ### Install Toolchain
 `sudo apt update`
+
 `sudo apt install -y build-essential clang cmake ninja-build git pkg-config`
 
 ### Set up vcpkg
 `git clone https://github.com/microsoft/vcpkg "$HOME/vcpkg"`
+
 `"$HOME/vcpkg/bootstrap-vcpkg.sh"`
+
 `echo 'export VCPKG_ROOT="$HOME/vcpkg"' >> ~/.bashrc`
+
 `source ~/.bashrc`
 
 ### Build it bro
 `cmake --preset linux-vcpkg`
+
 `cmake --build --preset linux-vcpkg`
+
 <!-- Optional: symlink these compile_commands files -->
 `ln -sf build/compile_commands.json compile_commands.json`
 
@@ -38,7 +44,9 @@ This project was primarily made and tested with Linux in mind. Windows steps are
 If, for some reason, the build steps above didn't work, you can build it without using the preset:
 
 `cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON`
+
 `cmake --build build`
+
 <!-- Optional: symlink these compile_commands files -->
 `ln -sf build/compile_commands.json compile_commands.json`
 
@@ -71,12 +79,15 @@ I'll be real with you I don't actually know if these work yet but it probably do
 First, install Visual Studio with "Desktop development with C++"
 
 `git clone https://github.com/microsoft/vcpkg $env:USERPROFILE\vcpkg & $env:USERPROFILE\vcpkg\bootstrap-vcpkg.bat`
+
 `setx VCPKG_ROOT "$env:USERPROFILE\vcpkg"`
 
 ### Build
 
 `cmake -S . -B build -G "Ninja" -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON`
+
 `cmake --build build`
+
 `build\aetherial_realms.exe`
 
 That's it tbh bt idk icl
