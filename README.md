@@ -76,8 +76,8 @@ First, install Visual Studio with "Desktop development with C++"
 
 `build\aetherial_realms.exe`
 
-That's it tbh bt idk icl
+That's it tbh bt idk icl lol
 
 ## Mac
 
-¯\_(ツ)_/¯
+¯\\_(ツ)_/¯
