@@ -37,7 +37,8 @@ This project was primarily made and tested with Linux in mind. Windows steps are
 
 `cmake --build --preset linux-vcpkg`
 
-<!-- Optional: symlink these compile_commands files -->
+Optional: symlink these compile_commands files
+
 `ln -sf build/compile_commands.json compile_commands.json`
 
 ### ALTERNATIVE BUILD
@@ -47,27 +48,12 @@ If, for some reason, the build steps above didn't work, you can build it without
 
 `cmake --build build`
 
-<!-- Optional: symlink these compile_commands files -->
+Optional: symlink these compile_commands files
+
 `ln -sf build/compile_commands.json compile_commands.json`
 
 ### RUNIT
 `./build/aetherial_realms`
-
-### CMakeLists.txt
-Make a CMakeLists.txt file in the root directory. Should look like this:
-
-```c
-cmake_minimum_required(VERSION 3.22)
-project(aetherial_realms LANGUAGES CXX)
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-find_package(SDL2 CONFIG REQUIRED)
-find_package(bgfx CONFIG REQUIRED)
-
-add_executable(aetherial_realms src/main.cpp)
-target_link_libraries(aetherial_realms PRIVATE SDL2::SDL2 bgfx::bgfx)
-```
 
 Job done :)
 
