@@ -3,7 +3,7 @@
   "version-string": "0.1.0",
   "dependencies": [
     { "name": "bgfx", "features": ["tools"] },
-    "sdl2",
+    { "name": "sdl2", "default-features": false, "features": ["x11","wayland","dbus", "ibus"] },
     "glm"
   ]
 }
